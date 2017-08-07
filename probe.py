@@ -95,9 +95,10 @@ def GetOnvifHostName(ip,user='admin',password='admin'):
 call('clear')
 print("Welcome: " + getpass.getuser())
 print("Zoneminder Onvif device installer. Copyright (C) 2017 Andrew Malone Collective Industries\n\n")
-print("Local Server Time (from %s): %s%s%s" % (config.SiteConfig.ntp,color.OKBLUE,function.ntpGet(config.SiteConfig.ntp)[0],color.END))
+# Grab first time stamp from time.nist.gov so we can avoide anything too dangerous before we configure options
+print("Local Server Time (from %s): %s%s%s" % ('time.nist.gov',color.OKBLUE,function.ntpGet('time.nist.gov')[0],color.END))
 
-print(os.getcwd())
+#print(os.getcwd())
 db = function.MySQL_init()
 
 cursor = db.cursor()
