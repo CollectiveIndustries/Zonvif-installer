@@ -19,6 +19,7 @@ import json
 from onvif import ONVIFCamera, ONVIFError
 from module import config, function
 from subprocess import *
+from pprint import pprint
 
 ######## variable init #######
 
@@ -76,6 +77,15 @@ def fetch(statement):
     db.commit()
     return cursor.fetchone()
 
+def GetOnvifHostName(ip,user='admin',password='admin'):
+    try:
+        cam = ONVIFCamera(ip, 80, user, password, '/etc/onvif/wsdl/')
+        resp = cam.devicemgmt.GetHostname()
+        return str(resp.Name)
+    except ONVIFError as e:
+        return None
+
+
 
 # Precompile all the RegEx
 #desc = re.compile(DESC)
@@ -84,7 +94,9 @@ def fetch(statement):
 
 call('clear')
 print("Welcome: " + getpass.getuser())
-print("Zoneminder Onvif device installer. Copyright (C) 2016 Andrew Malone Collective Industries\n\n")
+print("Zoneminder Onvif device installer. Copyright (C) 2017 Andrew Malone Collective Industries\n\n")
+print("Local Server Time (from %s): %s%s%s" % (config.SiteConfig.ntp,color.OKBLUE,function.ntpGet(config.SiteConfig.ntp)[0],color.END))
+
 print(os.getcwd())
 db = function.MySQL_init()
 
@@ -94,8 +106,9 @@ data = fetch("SELECT VERSION()")
 print("Database version: %s" % data)
 print("Database configuration settings are correct\n\n")
 print("All option defaults will be marked as (%sdefaults%s)" % (color.HEADER,color.END))
+
 # Grab ARP table
-inet_dev = raw_input('Which interface should be scanned for ONVIF Cameras? (%seth0%s) ' % (color.HEADER,color.END))
+inet_dev = raw_input('Which interface should be scanned for ONVIF Cameras? (%s%s%s) ' % (color.HEADER,'eth0',color.END))
 if inet_dev == '':
     inet_dev = 'eth0'
 
@@ -104,21 +117,20 @@ out, err = arp.communicate()
 
 try:
     decoded = json.loads(out.decode("utf-8"))
+    for x in decoded:
+        x['onvif'] = GetOnvifHostName(x['ip'],'admin','admin')
+        if x['onvif'] is None:
+	    print("%s%s - %s - %s - %s%s" %(color.FAIL,x['ip'],x['mac'],x['vendor'], 'FAIL', color.END))
+	else:
+	    print("%s%s - %s - %s - %s%s" %(color.OKGREEN,x['ip'],x['mac'],x['vendor'], x['onvif'],color.END))
 except:
     print("There was a problem decoding the returned Json File")
 
-# Loop through each entry and identify ONVIF Devices.
 
-try:
-    mycam = ONVIFCamera('192.168.20.22', 80, 'admin', 'admin', '/etc/onvif/wsdl/')
-    # Get Hostname
 
-    resp = mycam.devicemgmt.GetHostname()
-    print('Camera`s hostname: ' + str(resp.Name))
-    function.ViewCamera('admin','admin','192.168.20.22')
-except ONVIFError as e:
-    print("%sIP Address %s failed when trying to obtain ONVIF information with error: %s%s" % (color.FAIL,'123',e,color.END) )
-
-print('Attempting connection to NTP Server......%s' % (config.SiteConfig.ntp))
-
-print(function.ntpGet(config.SiteConfig.ntp))
+for x in decoded:
+    if x['onvif'] is not None:
+        try:
+            function.ViewCamera('admin','admin',x['ip'])
+        except ONVIFError as e:
+            print("%sIP Address %s failed when trying to obtain ONVIF information with error: %s%s" % (color.FAIL,x['ip'],e,color.END) )

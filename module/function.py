@@ -80,9 +80,9 @@ def MySQL_init():
 
 
 def ViewCamera(User,Pass,IP):
-	cap = cv2.VideoCapture('rtsp://%s:%s@%s:554/cam/realmonitor?channel=1&subtype=0&unicast=true&proto=Onvif' % (User,Pass,IP) )
+	cap = cv2.VideoCapture('rtsp://%s:%s@%s:554/cam/realmonitor?channel=1&subtype=1&unicast=true&proto=Onvif' % (User,Pass,IP) )
 	ret, frame = cap.read()
-	cv2.imshow('Video', frame)
+	cv2.imshow('Snapshot', frame)
 	cv2.waitKey(0)
 	cv2.destroyAllWindows()
 #def SiteConfig():
@@ -115,6 +115,6 @@ def ntpGet(addr='time.nist.gov'):
         t -= TIME1970
         return time.ctime(t),t
 
-def timestamp2datestring(timestamp,format="%a %b %d %X %Z %Y"):
+def formatTime(timestamp,format="%a %b %d %X %Z %Y"):
     import time
     return time.strftime(format, time.gmtime(timestamp/1000.))
