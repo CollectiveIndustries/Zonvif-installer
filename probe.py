@@ -93,9 +93,9 @@ cursor = db.cursor()
 data = fetch("SELECT VERSION()")
 print("Database version: %s" % data)
 print("Database configuration settings are correct\n\n")
-
+print("All option defaults will be marked as (%sdefaults%s)" % (color.HEADER,color.END))
 # Grab ARP table
-inet_dev = raw_input('Which interface should be scanned for ONVIF Cameras? (eth0) ')
+inet_dev = raw_input('Which interface should be scanned for ONVIF Cameras? (%seth0%s) ' % (color.HEADER,color.END))
 if inet_dev == '':
     inet_dev = 'eth0'
 
