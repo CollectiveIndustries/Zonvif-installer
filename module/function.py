@@ -87,3 +87,34 @@ def ViewCamera(User,Pass,IP):
 	cv2.destroyAllWindows()
 #def SiteConfig():
 
+# Get time from NTP Server defualts to 'time.nist.gov' if nothing is provided.
+
+def ntpGet(addr='time.nist.gov'):
+    # http://code.activestate.com/recipes/117211-simple-very-sntp-client/
+    import socket
+    import struct
+    import sys
+    import time
+
+    TIME1970 = 2208988800L      # Thanks to F.Lundh
+    client = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
+    data = '\x1b' + 47 * '\0'
+    client.sendto( data, (addr, 123))
+    try:
+        client.settimeout(20)
+        data, address = client.recvfrom( 1024 )
+    except socket.error:
+         errno,errstr = sys.exc_info()[:2]
+         if errno == socket.timeout:
+             print('%sFailed to get Time from %s reason: Socket timed out%s' % (color.FAIL,addr,color.END))
+         else:
+             print('%sFailed to get Time from %s error: %s%s' % (color.FAIL,addr, errstr,color.END))
+
+    if data:
+        t = struct.unpack( '!12I', data )[10]
+        t -= TIME1970
+        return time.ctime(t),t
+
+def timestamp2datestring(timestamp,format="%a %b %d %X %Z %Y"):
+    import time
+    return time.strftime(format, time.gmtime(timestamp/1000.))

@@ -60,5 +60,11 @@ class SQLConfig:
 		port = ConfigSectionMap("DB")['port']
 
 # Camera Settings
+class CameraConfig:
+	user = ConfigSectionMap("CAM")['user']
+	password = ConfigSectionMap("CAM")['pass']
 
 # Site settings
+class SiteConfig:
+	ntp = ConfigSectionMap("NETWORK")['ntp']
+	dns = ConfigSectionMap("NETWORK")['dns']

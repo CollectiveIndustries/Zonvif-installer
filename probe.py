@@ -118,3 +118,7 @@ try:
     function.ViewCamera('admin','admin','192.168.20.22')
 except ONVIFError as e:
     print("%sIP Address %s failed when trying to obtain ONVIF information with error: %s%s" % (color.FAIL,'123',e,color.END) )
+
+print('Attempting connection to NTP Server......%s' % (config.SiteConfig.ntp))
+
+print(function.ntpGet(config.SiteConfig.ntp))
