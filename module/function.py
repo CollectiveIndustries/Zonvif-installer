@@ -5,11 +5,14 @@ try:
   config
 except NameError:
   import config
+  from config import SQLConfig
 
 import MySQLdb
 import subprocess
 import os, shutil
 from getpass import getpass
+import cv2
+import numpy as np
 
 # Text output color definitions
 class color:
@@ -35,14 +38,14 @@ def MySQL_init():
 
     ## Set up the Connection using config.d/NAME.conf returns a standard DB Object
 		try:
-			db = MySQLdb.connect(host=config._IN_MYSQL_HOST_,user=config._IN_MYSQL_USR_,passwd=config._IN_MYSQL_PASS_,db=config._IN_MYSQL_DB_)
+			db = MySQLdb.connect(host=SQLConfig.host,user=SQLConfig.user,passwd=SQLConfig.password,db=SQLConfig.db)
 			# Values must be correct, if values were wrong a MySQLdb.Error would have been thrown
 			# lets write out the new configuration values.
 #			config.ConfigAddSection("DB")
-			config.ConfigSetValue("DB","host",config._IN_MYSQL_HOST_)
-			config.ConfigSetValue("DB","user",config._IN_MYSQL_USR_)
-			config.ConfigSetValue("DB","password",config._IN_MYSQL_PASS_)
-			config.ConfigSetValue("DB","database",config._IN_MYSQL_DB_)
+			config.ConfigSetValue("DB","host",SQLConfig.host)
+			config.ConfigSetValue("DB","user",SQLConfig.user)
+			config.ConfigSetValue("DB","password",SQLConfig.password)
+			config.ConfigSetValue("DB","database",SQLConfig.db)
 #			config.ConfigSetValue("DB","port",config._IN_MYSQL_PORT_) # this setting looks to be unused at the moment however at some time in the future it should be configurable.
 			config.ConfigWrite() # Write file with proper values now that weve updated everything.
 
@@ -51,26 +54,36 @@ def MySQL_init():
 		except MySQLdb.Error:
 			print "There was a problem in connecting to the database."
 			print "Config DUMP:"
-			print "HOST: %s\nUSER: %s\nPASS: %s\nDATABASE: %s" %(config._IN_MYSQL_HOST_,config._IN_MYSQL_USR_,config._IN_MYSQL_PASS_,config._IN_MYSQL_DB_)
+			print "HOST: %s\nUSER: %s\nPASS: %s\nDATABASE: %s" %(SQLConfig.host,SQLConfig.user,SQLConfig.password,SQLConfig.db)
 			print "Please Enter the correct login credentials below.\nRequired items are marked in "+color.FAIL+"RED"+color.END+" Any default values will be marked with []\n Once correct values are configured the installer will update the configuration file: "+config.ConfigFile
 
 			## > fix values here < ##
 
-			config._IN_MYSQL_HOST_ = None
-			config._IN_MYSQL_USR_ = None
-			config._IN_MYSQL_PASS_ = None
-			config._IN_MYSQL_DB_ = None
+			SQLConfig.host = None
+			SQLConfig.user = None
+			SQLConfig.password = None
+			SQLConfig.db = None
 
 			# After restting variables to None we need to prompt the user for each one and try again.
 
-			while ((config._IN_MYSQL_HOST_ is None) or (config._IN_MYSQL_HOST_=='')):
-				config._IN_MYSQL_HOST_ = raw_input(color.FAIL+"Mysql Server Host (example.com) []: "+color.END)
-			while ((config._IN_MYSQL_DB_ is None) or (config._IN_MYSQL_DB_ == '')):
-				config._IN_MYSQL_DB_ = raw_input(color.FAIL+"Name of Database []: "+color.END)
-			while ((config._IN_MYSQL_USR_ is None) or (config._IN_MYSQL_USR_ == '')):
-				config._IN_MYSQL_USR_ = raw_input(color.FAIL+"Username []: "+color.END)
-			while ((config._IN_MYSQL_PASS_ is None) or (config._IN_MYSQL_PASS_ == '')):
-				config._IN_MYSQL_PASS_ = getpass(color.FAIL+"Password []: "+color.END)
+			while ((SQLConfig.host is None) or (SQLConfig.host=='')):
+				SQLConfig.host = raw_input(color.FAIL+"Mysql Server Host (example.com) []: "+color.END)
+			while ((SQLConfig.db is None) or (SQLConfig.db == '')):
+				SQLConfig.db = raw_input(color.FAIL+"Name of Database []: "+color.END)
+			while ((SQLConfig.user is None) or (SQLConfig.user == '')):
+				SQLConfig.user = raw_input(color.FAIL+"Username []: "+color.END)
+			while ((SQLConfig.password is None) or (SQLConfig.password == '')):
+				SQLConfig.password = getpass(color.FAIL+"Password []: "+color.END)
 			pass
 		except MySQLdb.Warning: # Silently ignore Warnings
 			break
+
+
+def ViewCamera(User,Pass,IP):
+	cap = cv2.VideoCapture('rtsp://%s:%s@%s:554/cam/realmonitor?channel=1&subtype=0&unicast=true&proto=Onvif' % (User,Pass,IP) )
+	ret, frame = cap.read()
+	cv2.imshow('Video', frame)
+	cv2.waitKey(0)
+	cv2.destroyAllWindows()
+#def SiteConfig():
+

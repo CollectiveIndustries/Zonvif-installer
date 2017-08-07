@@ -91,6 +91,8 @@ ENV/
 
 # Editor Stuff
 *.swp
+*.bak
+*.save
 
 #  PHP Configuration File
 php/config.php

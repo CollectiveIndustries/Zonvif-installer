@@ -51,9 +51,14 @@ def ConfigWrite():
 
 # Set up config values
 
-# MYSQL server config
-_IN_MYSQL_HOST_ = ConfigSectionMap("DB")['host']
-_IN_MYSQL_USR_ = ConfigSectionMap("DB")['user']
-_IN_MYSQL_PASS_ = ConfigSectionMap("DB")['password']
-_IN_MYSQL_DB_ = ConfigSectionMap("DB")['database']
-_IN_MYSQL_PORT_ = ConfigSectionMap("DB")['port']
+# Zoneminder Settings
+class SQLConfig:
+		host = ConfigSectionMap("DB")['host']
+		user = ConfigSectionMap("DB")['user']
+		password = ConfigSectionMap("DB")['password']
+		db = ConfigSectionMap("DB")['database']
+		port = ConfigSectionMap("DB")['port']
+
+# Camera Settings
+
+# Site settings
