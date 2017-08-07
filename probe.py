@@ -128,7 +128,7 @@ except:
     print("There was a problem decoding the returned Json File")
 
 
-
+# Loop through the list and pull an image from the device.
 for x in decoded:
     if x['onvif'] is not None:
         try:
