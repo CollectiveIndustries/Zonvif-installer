@@ -86,6 +86,13 @@ def GetHostname(ip,user='admin',password='admin'):
     except ONVIFError as e:
         return None
 
+def GetNetworkInterfaces(ip,user='admin',password='admin'):
+    try:
+        cam = ONVIFCamera(ip, 80, user, password, '/etc/onvif/wsdl')
+        return cam.devicemgmt.GetNetworkInterfaces()
+    except ONVIFError as e:
+        return None
+
 def GetDeviceInformation(ip,user='admin',password='admin'):
     try:
         cam = ONVIFCamera(ip, 80, user, password, '/etc/onvif/wsdl/')
@@ -101,6 +108,46 @@ def GetSystemDateAndTime(ip,user='admin',password='admin'):
     except ONVIFError as e:
         return None
 
+## GetONVIFSubnetInfo()
+# grab a list of network devices with arp returning in JSON format for parsing.
+# Loop through each Device and a) devices is not onvif set structure to None. b) Device returns hostname so lets grab all the other information and add it to the data structure.
+def GetONVIFSubnetInfo(inet_dev='eth0',user='admin',password='admin'):
+    arp = Popen(prog.arp2json+[inet_dev], stdout=PIPE, stderr=PIPE)
+    out, err = arp.communicate()
+
+# Display Onvif Devices and other information
+    try:
+        decoded = json.loads(out.decode("utf-8"))
+        print("%sIP - MAC - Vendor - ONVIF Hostname - Configured Using - Time Zone - Local Time - Configured using DHCP?%s" % (color.HEADER,color.END))
+        for x in decoded:
+            x['onvif'] = GetHostname(x['ip'],user,password)
+            if x['onvif'] is None:
+                print("%s%s - %s - %s - %s%s" %(color.FAIL,x['ip'],x['mac'],x['vendor'], 'FAIL', color.END))
+            else:
+                # clock: NTP, dhcp: False, timezone: GMT-07:00, NewIP: 0.0.0.0
+                NetConf = GetNetworkInterfaces(x['ip'],user,password)
+                DateTime = GetSystemDateAndTime(x['ip'],user,password)
+                x['timezone'] = DateTime.TimeZone.TZ
+                x['clock'] = DateTime.DateTimeType
+
+                ## Grab Local time from the Camera
+                Hour = DateTime.LocalDateTime.Time.Hour
+                Minute = DateTime.LocalDateTime.Time.Minute
+                Second = DateTime.LocalDateTime.Time.Second
+                Year = DateTime.LocalDateTime.Date.Year
+                Month = DateTime.LocalDateTime.Date.Month
+                Day = DateTime.LocalDateTime.Date.Day
+
+                ## Process the NetConf here to get values
+                for y in NetConf:
+                    x['dhcp'] = y.IPv4.Config.DHCP
+
+                print("%s%s - %s - %s - %s - %s - %s - %s/%s/%s %s:%s:%s - %s%s" %(color.OKGREEN, x['ip'], x['mac'], x['vendor'], x['onvif'], x['clock'], x['timezone'], Month, Day, Year,  Hour, Minute,Second,x['dhcp'],color.END))
+
+    except Exception as e:
+        print("There was a problem scanning the network.")
+        print(e)
+        exit(1)
 
 #def SetNtp(ip,user='admin',password='admin'):
 #    try:
@@ -131,35 +178,9 @@ print("All option defaults will be marked as (%sdefault%s)" % (color.HEADER,colo
 # Grab ARP table
 inet_dev = raw_input('Which interface should be scanned for ONVIF Cameras? (%s%s%s) ' % (color.HEADER,'eth0',color.END))
 if inet_dev == '':
-    inet_dev = 'eth0'
-
-arp = Popen(prog.arp2json+[inet_dev], stdout=PIPE, stderr=PIPE)
-out, err = arp.communicate()
-
-# Display Onvif Devices and there Serial Number
-try:
-    decoded = json.loads(out.decode("utf-8"))
-    print("%sIP - MAC - Vendor - ONVIF Hostname - Configured Using - Time Zone - Local Time - IP Configuration%s" % (color.HEADER,color.END))
-    for x in decoded:
-        x['onvif'] = GetHostname(x['ip'],'admin','admin')
-        if x['onvif'] is None:
-	    print("%s%s - %s - %s - %s%s" %(color.FAIL,x['ip'],x['mac'],x['vendor'], 'FAIL', color.END))
-	else:
-            DateTime = GetSystemDateAndTime(x['ip'],'admin','admin')
-            TimeZone = DateTime.TimeZone.TZ
-            TimeConfig = DateTime.DateTimeType
-            Hour = DateTime.LocalDateTime.Time.Hour
-            Minute = DateTime.LocalDateTime.Time.Minute
-            Second = DateTime.LocalDateTime.Time.Second
-            Year = DateTime.LocalDateTime.Date.Year
-            Month = DateTime.LocalDateTime.Date.Month
-            Day = DateTime.LocalDateTime.Date.Day
-
-	    print("%s%s - %s - %s - %s - %s - %s - %s %s %s:%s:%s %s%s" %(color.OKGREEN, x['ip'], x['mac'], x['vendor'], x['onvif'], TimeConfig, TimeZone, Day, Month,  Hour, Minute, Second, Year,color.END))
-
-except Exception as e:
-    print("There was a problem decoding the returned Json File")
-    print(e)
+    GetONVIFSubnetInfo() # Print out all returned values from compatible devices found on the network with all defaults
+else:
+    GetONVIFSubnetInfo(inet_dev)
 
 # Loop through the list and pull an image from the device.
 #for x in decoded:
