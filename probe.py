@@ -77,14 +77,34 @@ def fetch(statement):
     db.commit()
     return cursor.fetchone()
 
-def GetOnvifHostName(ip,user='admin',password='admin'):
+# ONVIF Functions by name (https://www.onvif.org/onvif/ver20/util/operationIndex.html)
+
+def GetHostname(ip,user='admin',password='admin'):
     try:
         cam = ONVIFCamera(ip, 80, user, password, '/etc/onvif/wsdl/')
-        resp = cam.devicemgmt.GetHostname()
-        return str(resp.Name)
+        return cam.devicemgmt.GetHostname().Name
     except ONVIFError as e:
         return None
 
+def GetDeviceInformation(ip,user='admin',password='admin'):
+    try:
+        cam = ONVIFCamera(ip, 80, user, password, '/etc/onvif/wsdl/')
+        return cam.devicemgmt.GetDeviceInformation()
+    except ONVIFError as e:
+#        print("%s%s%s" % (color.FAIL,e,color.END))
+        return None
+
+def GetSystemDateAndTime(ip,user='admin',password='admin'):
+    try:
+        cam = ONVIFCamera(ip, 80, user, password, '/etc/onvif/wsdl')
+        return cam.devicemgmt.GetSystemDateAndTime()
+    except ONVIFError as e:
+        return None
+
+
+#def SetNtp(ip,user='admin',password='admin'):
+#    try:
+#        cam = ONVIFCamera(ip, 80, user, password, '/etc/onvif/wsdl')
 
 
 # Precompile all the RegEx
@@ -96,7 +116,7 @@ call('clear')
 print("Welcome: " + getpass.getuser())
 print("Zoneminder Onvif device installer. Copyright (C) 2017 Andrew Malone Collective Industries\n\n")
 # Grab first time stamp from time.nist.gov so we can avoide anything too dangerous before we configure options
-print("Local Server Time (from %s): %s%s%s" % ('time.nist.gov',color.OKBLUE,function.ntpGet('time.nist.gov')[0],color.END))
+print("Local Server Time (from %s): %s%s%s" % ('time.nist.gov',color.OKBLUE,function.ntpGet('192.168.20.1')[0],color.END))
 
 #print(os.getcwd())
 db = function.MySQL_init()
@@ -106,7 +126,7 @@ cursor = db.cursor()
 data = fetch("SELECT VERSION()")
 print("Database version: %s" % data)
 print("Database configuration settings are correct\n\n")
-print("All option defaults will be marked as (%sdefaults%s)" % (color.HEADER,color.END))
+print("All option defaults will be marked as (%sdefault%s)" % (color.HEADER,color.END))
 
 # Grab ARP table
 inet_dev = raw_input('Which interface should be scanned for ONVIF Cameras? (%s%s%s) ' % (color.HEADER,'eth0',color.END))
@@ -116,22 +136,35 @@ if inet_dev == '':
 arp = Popen(prog.arp2json+[inet_dev], stdout=PIPE, stderr=PIPE)
 out, err = arp.communicate()
 
+# Display Onvif Devices and there Serial Number
 try:
     decoded = json.loads(out.decode("utf-8"))
+    print("%sIP - MAC - Vendor - ONVIF Hostname - Configured Using - Time Zone - Local Time - IP Configuration%s" % (color.HEADER,color.END))
     for x in decoded:
-        x['onvif'] = GetOnvifHostName(x['ip'],'admin','admin')
+        x['onvif'] = GetHostname(x['ip'],'admin','admin')
         if x['onvif'] is None:
 	    print("%s%s - %s - %s - %s%s" %(color.FAIL,x['ip'],x['mac'],x['vendor'], 'FAIL', color.END))
 	else:
-	    print("%s%s - %s - %s - %s%s" %(color.OKGREEN,x['ip'],x['mac'],x['vendor'], x['onvif'],color.END))
-except:
-    print("There was a problem decoding the returned Json File")
+            DateTime = GetSystemDateAndTime(x['ip'],'admin','admin')
+            TimeZone = DateTime.TimeZone.TZ
+            TimeConfig = DateTime.DateTimeType
+            Hour = DateTime.LocalDateTime.Time.Hour
+            Minute = DateTime.LocalDateTime.Time.Minute
+            Second = DateTime.LocalDateTime.Time.Second
+            Year = DateTime.LocalDateTime.Date.Year
+            Month = DateTime.LocalDateTime.Date.Month
+            Day = DateTime.LocalDateTime.Date.Day
 
+	    print("%s%s - %s - %s - %s - %s - %s - %s %s %s:%s:%s %s%s" %(color.OKGREEN, x['ip'], x['mac'], x['vendor'], x['onvif'], TimeConfig, TimeZone, Day, Month,  Hour, Minute, Second, Year,color.END))
+
+except Exception as e:
+    print("There was a problem decoding the returned Json File")
+    print(e)
 
 # Loop through the list and pull an image from the device.
-for x in decoded:
-    if x['onvif'] is not None:
-        try:
-            function.ViewCamera('admin','admin',x['ip'])
-        except ONVIFError as e:
-            print("%sIP Address %s failed when trying to obtain ONVIF information with error: %s%s" % (color.FAIL,x['ip'],e,color.END) )
+#for x in decoded:
+#    if x['onvif'] is not None:
+#        try:
+#            function.ViewCamera('admin','admin',x['ip'])
+#        except ONVIFError as e:
+#            print("%sIP Address %s failed when trying to obtain ONVIF information with error: %s%s" % (color.FAIL,x['ip'],e,color.END) )
