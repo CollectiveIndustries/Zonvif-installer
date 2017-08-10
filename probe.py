@@ -182,10 +182,12 @@ print("All option defaults will be marked as (%sdefault%s)" % (color.HEADER,colo
 
 # Grab ARP table
 inet_dev = raw_input('Which interface should be scanned for ONVIF Cameras? (%s%s%s) ' % (color.HEADER,'eth0',color.END))
-if inet_dev == '':
+user = raw_input('Username: (%s%s%s) ' % (color.HEADER,'admin',color.END))
+password = raw_input('Password: (%s%s%s) ' % (color.HEADER,'admin',color.END))
+if inet_dev == '' and user == '' and password == '':
     SubnetInfo = GetONVIFSubnetInfo() # Print out all returned values from compatible devices found on the network with all defaults
 else:
-    SubnetInfo = GetONVIFSubnetInfo(inet_dev)
+    SubnetInfo = GetONVIFSubnetInfo(inet_dev, user, password)
 
 pprint(SubnetInfo)
 
