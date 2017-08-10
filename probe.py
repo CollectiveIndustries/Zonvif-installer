@@ -108,6 +108,8 @@ def GetSystemDateAndTime(ip,user='admin',password='admin'):
     except ONVIFError as e:
         return None
 
+
+
 ## GetONVIFSubnetInfo()
 # grab a list of network devices with arp returning in JSON format for parsing.
 # Loop through each Device and a) devices is not onvif set structure to None. b) Device returns hostname so lets grab all the other information and add it to the data structure.
@@ -149,6 +151,9 @@ def GetONVIFSubnetInfo(inet_dev='eth0',user='admin',password='admin'):
         print(e)
         exit(1)
 
+    finally:
+        return decoded
+
 #def SetNtp(ip,user='admin',password='admin'):
 #    try:
 #        cam = ONVIFCamera(ip, 80, user, password, '/etc/onvif/wsdl')
@@ -178,9 +183,13 @@ print("All option defaults will be marked as (%sdefault%s)" % (color.HEADER,colo
 # Grab ARP table
 inet_dev = raw_input('Which interface should be scanned for ONVIF Cameras? (%s%s%s) ' % (color.HEADER,'eth0',color.END))
 if inet_dev == '':
-    GetONVIFSubnetInfo() # Print out all returned values from compatible devices found on the network with all defaults
+    SubnetInfo = GetONVIFSubnetInfo() # Print out all returned values from compatible devices found on the network with all defaults
 else:
-    GetONVIFSubnetInfo(inet_dev)
+    SubnetInfo = GetONVIFSubnetInfo(inet_dev)
+
+pprint(SubnetInfo)
+
+
 
 # Loop through the list and pull an image from the device.
 #for x in decoded:

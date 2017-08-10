@@ -68,3 +68,15 @@ class CameraConfig:
 class SiteConfig:
 	ntp = ConfigSectionMap("NETWORK")['ntp']
 	dns = ConfigSectionMap("NETWORK")['dns']
+        dhcp = ConfigSectionMap("NETWORK")['dhcp']
+	gateway = ConfigSectionMap("NETWORK")['gateway']
+	iface = ConfigSectionMap("NETWORK")['iface']
+
+
+# DNS Server settings for uploading HOST file
+class DNSConfig:
+	addy = ConfigSectionMap("DNS")['address']
+	hostFile = ConfigSectionMap("DNS")['host_file_path']
+	serverProto = ConfigSectionMap("DNS")['protocol']
+	user = ConfigSectionMap("DNS")['user']
+
