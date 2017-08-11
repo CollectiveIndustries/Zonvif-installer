@@ -52,6 +52,8 @@ class color:
 # Helper Applications
 class prog:
     arp2json = ['./arp2json']
+    getInf = ['./lsiface']
+
 
 ## Function Delerations ##
 
@@ -182,6 +184,10 @@ print("All option defaults will be marked as (%sdefault%s)" % (color.HEADER,colo
 
 # Grab ARP table
 inet_dev = raw_input('Which interface should be scanned for ONVIF Cameras? (%s%s%s) ' % (color.HEADER,'eth0',color.END))
+
+if inet_dev = '':
+
+
 user = raw_input('Username: (%s%s%s) ' % (color.HEADER,'admin',color.END))
 password = raw_input('Password: (%s%s%s) ' % (color.HEADER,'admin',color.END))
 if inet_dev == '' and user == '' and password == '':
@@ -189,7 +195,7 @@ if inet_dev == '' and user == '' and password == '':
 else:
     SubnetInfo = GetONVIFSubnetInfo(inet_dev, user, password)
 
-pprint(SubnetInfo)
+#pprint(SubnetInfo)
 
 
 
