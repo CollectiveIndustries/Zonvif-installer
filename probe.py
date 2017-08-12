@@ -55,6 +55,31 @@ class prog:
     getInf = ['./lsiface']
 
 
+# This class provides the functionality we want. You only need to look at
+# this if you want to know how this works. It only needs to be defined
+# once, no need to muck around with its internals.
+# Located at http://code.activestate.com/recipes/410692/
+class switch(object):
+    def __init__(self, value):
+        self.value = value
+        self.fall = False
+
+    def __iter__(self):
+        """Return the match method once, then stop"""
+        yield self.match
+        raise StopIteration
+
+    def match(self, *args):
+        """Indicate whether or not to enter a case suite"""
+        if self.fall or not args:
+            return True
+        elif self.value in args:
+            self.fall = True
+            return True
+        else:
+            return False
+
+
 ## Function Delerations ##
 
     ## run a Commit ##
@@ -110,6 +135,20 @@ def GetSystemDateAndTime(ip,user='admin',password='admin'):
     except ONVIFError as e:
         return None
 
+def GetInf():
+    ifaces = Popen(prog.getInf, stdout=PIPE, stderr=PIPE)
+    out, error = ifaces.communicate()
+    print("Interfaces found for scanning:")
+
+    try:
+        decoded = json.loads(out.decode("utf-8"))
+#        for x in decoded:
+#            print("%s%s%s" % (color.WARNING,x['iface'],color.END))
+    except Exception as e:
+        print("There was a problem scanning for interfaces.")
+        print(e)
+    finally:
+        return decoded
 
 
 ## GetONVIFSubnetInfo()
@@ -182,18 +221,25 @@ print("Database version: %s" % data)
 print("Database configuration settings are correct\n\n")
 print("All option defaults will be marked as (%sdefault%s)" % (color.HEADER,color.END))
 
-# Grab ARP table
-inet_dev = raw_input('Which interface should be scanned for ONVIF Cameras? (%s%s%s) ' % (color.HEADER,'eth0',color.END))
+# Get local interfaces list from the system directory.
+# ifaces[0]['iface'] is the first listed interface name and is automatically set as the default option
+ifaces = enumerate(GetInf())
+for index, value in ifaces:
+    print("%s%s) %s%s" % (color.WARNING,index,value['iface'],color.END))
 
-if inet_dev = '':
+
+
+# Grab ARP table
+for case in switch(raw_input('Which interface should be scanned for ONVIF Cameras? (%s%s%s) ' % (color.HEADER,ifaces[0]['iface'],color.END))):
+    if case(''): pass # Default option
+    if case('0'): pass # First listed option
+    if case(ifaces[0]['iface']): # user gave the name of the interface of option 0
+            SubnetInfo = GetONVIFSubnetInfo(ifaces[0]['iface'],'admin','admin')
 
 
 user = raw_input('Username: (%s%s%s) ' % (color.HEADER,'admin',color.END))
 password = raw_input('Password: (%s%s%s) ' % (color.HEADER,'admin',color.END))
-if inet_dev == '' and user == '' and password == '':
-    SubnetInfo = GetONVIFSubnetInfo() # Print out all returned values from compatible devices found on the network with all defaults
-else:
-    SubnetInfo = GetONVIFSubnetInfo(inet_dev, user, password)
+SubnetInfo = GetONVIFSubnetInfo(inet_dev, user, password)
 
 #pprint(SubnetInfo)
 
