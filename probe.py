@@ -157,7 +157,7 @@ def GetInf():
 def GetONVIFSubnetInfo(inet_dev='eth0',user='admin',password='admin'):
     arp = Popen(prog.arp2json+[inet_dev], stdout=PIPE, stderr=PIPE)
     out, err = arp.communicate()
-
+    print(err)
 # Display Onvif Devices and other information
     try:
         decoded = json.loads(out.decode("utf-8"))
@@ -199,6 +199,34 @@ def GetONVIFSubnetInfo(inet_dev='eth0',user='admin',password='admin'):
 #    try:
 #        cam = ONVIFCamera(ip, 80, user, password, '/etc/onvif/wsdl')
 
+def ScanNetwork():
+    # Get local interfaces list from the system directory.
+    # ifaces[0]['iface'] is the first listed interface name and is automatically set as the default option
+    while True:
+        InterfaceList = GetInf()
+        for index, value in enumerate(InterfaceList):
+            print("%s%s) %s%s" % (color.WARNING,index,value['iface'],color.END))
+        prompt = raw_input('Which interface should be scanned for ONVIF Cameras? (%s%s%s) ' % (color.HEADER,InterfaceList[0]['iface'],color.END))
+        user = raw_input('Username: (%s%s%s) ' % (color.HEADER,'admin',color.END))
+        password = raw_input('Password: (%s%s%s) ' % (color.HEADER,'admin',color.END))
+        if user == '':
+            user = 'admin'
+        if password == '':
+            password = 'admin'
+
+        for index, value in enumerate(InterfaceList):
+            for case in switch(prompt):
+                if case(''): pass # Default option
+                if case('0'): pass # First listed option
+                if case(InterfaceList[0]['iface']): # user gave the name of the interface of option 0
+                    SubnetInfo = GetONVIFSubnetInfo(value['iface'],user, password)
+                    return
+                if case(str(index)): pass # Check all interfaces in the list
+                if case(value['iface']): # aswell as there name
+                    print("Scanning network using interface: %s%s) %s%s" % (color.OKBLUE,index,value['iface'],color.END))
+                    SubnetInfo = GetONVIFSubnetInfo(value['iface'],user, password)
+                    return
+        print("%sERROR: interface not found.%s\n%sPlease choose a valid interface from the shown options.%s" % (color.FAIL,color.END,color.WARNING,color.END))
 
 # Precompile all the RegEx
 #desc = re.compile(DESC)
@@ -221,25 +249,7 @@ print("Database version: %s" % data)
 print("Database configuration settings are correct\n\n")
 print("All option defaults will be marked as (%sdefault%s)" % (color.HEADER,color.END))
 
-# Get local interfaces list from the system directory.
-# ifaces[0]['iface'] is the first listed interface name and is automatically set as the default option
-ifaces = enumerate(GetInf())
-for index, value in ifaces:
-    print("%s%s) %s%s" % (color.WARNING,index,value['iface'],color.END))
-
-
-
-# Grab ARP table
-for case in switch(raw_input('Which interface should be scanned for ONVIF Cameras? (%s%s%s) ' % (color.HEADER,ifaces[0]['iface'],color.END))):
-    if case(''): pass # Default option
-    if case('0'): pass # First listed option
-    if case(ifaces[0]['iface']): # user gave the name of the interface of option 0
-            SubnetInfo = GetONVIFSubnetInfo(ifaces[0]['iface'],'admin','admin')
-
-
-user = raw_input('Username: (%s%s%s) ' % (color.HEADER,'admin',color.END))
-password = raw_input('Password: (%s%s%s) ' % (color.HEADER,'admin',color.END))
-SubnetInfo = GetONVIFSubnetInfo(inet_dev, user, password)
+ScanNetwork()
 
 #pprint(SubnetInfo)
 
