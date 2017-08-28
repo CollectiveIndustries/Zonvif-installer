@@ -27,7 +27,7 @@ from pprint import pprint
 ##      # Global Variables #    ##
 
 warnings.filterwarnings('error',category=MySQLdb.Warning)
-
+_NTP_SERVER_ = '192.168.20.2'
 
 # Regular Expression Groups #
 class IsValid:
@@ -135,6 +135,17 @@ def GetSystemDateAndTime(ip,user='admin',password='admin'):
     except ONVIFError as e:
         return None
 
+def ResetNetworkInterfaces(ip,user='admin',password='admin'):
+    try:
+        cam = ONVIFCamera(ip,80,user,password,'/etc/onvif/wsdl')
+        params = cam.devicemgmt.create_type('SetNetworkInterfaces')
+        params.IPv4.Config.DHCP = "True"
+        cam.devicemgmt.SetNetworkInterfaces(params)
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
 def GetInf():
     ifaces = Popen(prog.getInf, stdout=PIPE, stderr=PIPE)
     out, error = ifaces.communicate()
@@ -164,9 +175,7 @@ def GetONVIFSubnetInfo(inet_dev='eth0',user='admin',password='admin'):
         print("%sIP - MAC - Vendor - ONVIF Hostname - Configured Using - Time Zone - Local Time - Configured using DHCP?%s" % (color.HEADER,color.END))
         for x in decoded:
             x['onvif'] = GetHostname(x['ip'],user,password)
-            if x['onvif'] is None:
-                print("%s%s - %s - %s - %s%s" %(color.FAIL,x['ip'],x['mac'],x['vendor'], 'FAIL', color.END))
-            else:
+            if x['onvif'] is not None: # print out only ONVIF devices
                 # clock: NTP, dhcp: False, timezone: GMT-07:00, NewIP: 0.0.0.0
                 NetConf = GetNetworkInterfaces(x['ip'],user,password)
                 DateTime = GetSystemDateAndTime(x['ip'],user,password)
@@ -206,6 +215,8 @@ def ScanNetwork():
         InterfaceList = GetInf()
         for index, value in enumerate(InterfaceList):
             print("%s%s) %s%s" % (color.WARNING,index,value['iface'],color.END))
+        print("\n%s%s%s" % (color.FAIL,'R) Reset [Resets all DHCP Settings on every compatible device on the network]',color.END))
+
         prompt = raw_input('Which interface should be scanned for ONVIF Cameras? (%s%s%s) ' % (color.HEADER,InterfaceList[0]['iface'],color.END))
         user = raw_input('Username: (%s%s%s) ' % (color.HEADER,'admin',color.END))
         password = raw_input('Password: (%s%s%s) ' % (color.HEADER,'admin',color.END))
@@ -226,6 +237,13 @@ def ScanNetwork():
                     print("Scanning network using interface: %s%s) %s%s" % (color.OKBLUE,index,value['iface'],color.END))
                     SubnetInfo = GetONVIFSubnetInfo(value['iface'],user, password)
                     return
+                if case('reset'): pass
+                if case('r'): pass
+                if case('R'):
+                    SubnetInfo = GetONVIFSubnetInfo(value['iface'],user, password) # print it out
+                    SubnetReset(value['iface'], user, password) # reset
+                    SubnetInfo = GetONVIFSubnetInfo(value['iface'],user, password) # print it out again
+                    return
         print("%sERROR: interface not found.%s\n%sPlease choose a valid interface from the shown options.%s" % (color.FAIL,color.END,color.WARNING,color.END))
 
 # Precompile all the RegEx
@@ -237,7 +255,7 @@ call('clear')
 print("Welcome: " + getpass.getuser())
 print("Zoneminder Onvif device installer. Copyright (C) 2017 Andrew Malone Collective Industries\n\n")
 # Grab first time stamp from time.nist.gov so we can avoide anything too dangerous before we configure options
-print("Local Server Time (from %s): %s%s%s" % ('time.nist.gov',color.OKBLUE,function.ntpGet('192.168.20.1')[0],color.END))
+print("Local Server Time (from %s): %s%s%s" % (_NTP_SERVER_, color.OKBLUE,function.ntpGet(_NTP_SERVER_)[0], color.END))
 
 #print(os.getcwd())
 db = function.MySQL_init()

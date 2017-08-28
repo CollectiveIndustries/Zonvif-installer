@@ -1,2 +1,2 @@
 #!/bin/bash
-ls /sys/class/net | gawk -f awk/iface2Json.awk
+ls /sys/class/net | grep -v 'lo' | gawk -f awk/iface2Json.awk
