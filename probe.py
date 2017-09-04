@@ -22,12 +22,12 @@ from subprocess import *
 from pprint import pprint
 
 ######## variable init #######
-
+CWD = os.getcwd() # get current working directory path
 
 ##      # Global Variables #    ##
 
 warnings.filterwarnings('error',category=MySQLdb.Warning)
-_NTP_SERVER_ = '192.168.20.2'
+_NTP_SERVER_ = 'time.nist.gov'
 
 # Regular Expression Groups #
 class IsValid:
@@ -51,8 +51,8 @@ class color:
 
 # Helper Applications
 class prog:
-    arp2json = ['./bash/arp2json']
-    getInf = ['./bash/lsiface']
+    arp2json = [CWD+'/bash/arp2json']
+    getInf = [CWD+'/bash/lsiface']
 
 
 # This class provides the functionality we want. You only need to look at
@@ -135,6 +135,8 @@ def GetSystemDateAndTime(ip,user='admin',password='admin'):
     except ONVIFError as e:
         return None
 
+# Wrapper functions
+
 def ResetNetworkInterfaces(ip,user='admin',password='admin'):
     try:
         cam = ONVIFCamera(ip,80,user,password,'/etc/onvif/wsdl')
@@ -166,9 +168,9 @@ def GetInf():
 # grab a list of network devices with arp returning in JSON format for parsing.
 # Loop through each Device and a) devices is not onvif set structure to None. b) Device returns hostname so lets grab all the other information and add it to the data structure.
 def GetONVIFSubnetInfo(inet_dev='eth0',user='admin',password='admin'):
-    arp = Popen(prog.arp2json+[inet_dev], stdout=PIPE, stderr=PIPE)
+    arp = Popen(prog.arp2json+[inet_dev, CWD], stdout=PIPE, stderr=PIPE)
     out, err = arp.communicate()
-    print(err)
+    print('%s%s%s' % (color.WARNING,err,color.END))
 # Display Onvif Devices and other information
     try:
         decoded = json.loads(out.decode("utf-8"))
@@ -241,7 +243,7 @@ def ScanNetwork():
                 if case('r'): pass
                 if case('R'):
                     SubnetInfo = GetONVIFSubnetInfo(value['iface'],user, password) # print it out
-                    SubnetReset(value['iface'], user, password) # reset
+                    print SubnetReset(value['iface'], user, password) # reset
                     SubnetInfo = GetONVIFSubnetInfo(value['iface'],user, password) # print it out again
                     return
         print("%sERROR: interface not found.%s\n%sPlease choose a valid interface from the shown options.%s" % (color.FAIL,color.END,color.WARNING,color.END))
@@ -253,6 +255,7 @@ def ScanNetwork():
 
 call('clear')
 print("Welcome: " + getpass.getuser())
+print("Current Working Directory: %s%s%s" % (color.HEADER,CWD,color.END))
 print("Zoneminder Onvif device installer. Copyright (C) 2017 Andrew Malone Collective Industries\n\n")
 # Grab first time stamp from time.nist.gov so we can avoide anything too dangerous before we configure options
 print("Local Server Time (from %s): %s%s%s" % (_NTP_SERVER_, color.OKBLUE,function.ntpGet(_NTP_SERVER_)[0], color.END))
@@ -270,7 +273,6 @@ print("All option defaults will be marked as (%sdefault%s)" % (color.HEADER,colo
 ScanNetwork()
 
 #pprint(SubnetInfo)
-
 
 
 # Loop through the list and pull an image from the device.
