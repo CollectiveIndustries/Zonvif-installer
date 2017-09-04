@@ -63,6 +63,8 @@ class SQLConfig:
 class CameraConfig:
 	user = ConfigSectionMap("CAM")['user']
 	password = ConfigSectionMap("CAM")['pass']
+	clock = ConfigSectionMap("CAM")['clock']
+	time_zone = ConfigSectionMap("CAM")['time_zone']
 
 # Site settings
 class SiteConfig:

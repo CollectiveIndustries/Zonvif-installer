@@ -220,12 +220,12 @@ def ScanNetwork():
         print("\n%s%s%s" % (color.FAIL,'R) Reset [Resets all DHCP Settings on every compatible device on the network]',color.END))
 
         prompt = raw_input('Which interface should be scanned for ONVIF Cameras? (%s%s%s) ' % (color.HEADER,InterfaceList[0]['iface'],color.END))
-        user = raw_input('Username: (%s%s%s) ' % (color.HEADER,'admin',color.END))
-        password = raw_input('Password: (%s%s%s) ' % (color.HEADER,'admin',color.END))
+        user = raw_input('Username: (%s%s%s) ' % (color.HEADER,config.CameraConfig.user,color.END))
+        password = raw_input('Password: (%s%s%s) ' % (color.HEADER,config.CameraConfig.password,color.END))
         if user == '':
-            user = 'admin'
+            user = config.CameraConfig.user
         if password == '':
-            password = 'admin'
+            password = config.CameraConfig.password
 
         for index, value in enumerate(InterfaceList):
             for case in switch(prompt):
