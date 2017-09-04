@@ -51,8 +51,8 @@ class color:
 
 # Helper Applications
 class prog:
-    arp2json = ['./arp2json']
-    getInf = ['./lsiface']
+    arp2json = ['./bash/arp2json']
+    getInf = ['./bash/lsiface']
 
 
 # This class provides the functionality we want. You only need to look at
