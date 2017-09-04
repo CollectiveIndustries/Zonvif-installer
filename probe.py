@@ -1,10 +1,10 @@
 #!/usr/bin/python
 #
-# Title: parse.py
+# Title: probe.py
 #
-# Purpose: Takes text documents from doc folder and parses them for upload to the correct classes DB.
+# Purpose: Probes network using ARP and grabs ONVIF cameras and installes them directly into Zoneminder MySQL DB.
 #
-# Copyright (C) Andrew Malone 2016
+# Copyright (C) Andrew Malone 2017
 
 # Imports for commonly used function
 
@@ -23,6 +23,7 @@ from pprint import pprint
 
 ######## variable init #######
 CWD = os.getcwd() # get current working directory path
+COPYRIGHT_DATE = '2017'
 
 ##      # Global Variables #    ##
 
@@ -163,7 +164,6 @@ def GetInf():
     finally:
         return decoded
 
-
 ## GetONVIFSubnetInfo()
 # grab a list of network devices with arp returning in JSON format for parsing.
 # Loop through each Device and a) devices is not onvif set structure to None. b) Device returns hostname so lets grab all the other information and add it to the data structure.
@@ -256,7 +256,7 @@ def ScanNetwork():
 call('clear')
 print("Welcome: " + getpass.getuser())
 print("Current Working Directory: %s%s%s" % (color.HEADER,CWD,color.END))
-print("Zoneminder Onvif device installer. Copyright (C) 2017 Andrew Malone Collective Industries\n\n")
+print("Zoneminder Onvif device installer. Copyright (C) %s Andrew Malone Collective Industries\n\n" % (COPYRIGHT_DATE))
 # Grab first time stamp from time.nist.gov so we can avoide anything too dangerous before we configure options
 print("Local Server Time (from %s): %s%s%s" % (_NTP_SERVER_, color.OKBLUE,function.ntpGet(_NTP_SERVER_)[0], color.END))
 
@@ -273,7 +273,6 @@ print("All option defaults will be marked as (%sdefault%s)" % (color.HEADER,colo
 ScanNetwork()
 
 #pprint(SubnetInfo)
-
 
 # Loop through the list and pull an image from the device.
 #for x in decoded:
