@@ -138,12 +138,13 @@ def GetSystemDateAndTime(ip,user='admin',password='admin'):
 
 # Wrapper functions
 
-def ResetNetworkInterfaces(ip,user='admin',password='admin'):
+# Resets the camera to factory defaults everything except the Hostname will be reset to there factory shipped values.
+def ResetCamera(ip,user='admin',password='admin'):
     try:
         cam = ONVIFCamera(ip,80,user,password,'/etc/onvif/wsdl')
-        params = cam.devicemgmt.create_type('SetNetworkInterfaces')
-        params.IPv4.Config.DHCP = "True"
-        cam.devicemgmt.SetNetworkInterfaces(params)
+        params = cam.devicemgmt.create_type('SetSystemFactoryDefault')
+        params.FactoryDefault = "Hard"
+        cam.devicemgmt.SetSystemFactoryDefault(params)
         return True
     except Exception as e:
         print(e)
@@ -174,6 +175,13 @@ def GetONVIFSubnetInfo(inet_dev='eth0',user='admin',password='admin'):
 # Display Onvif Devices and other information
     try:
         decoded = json.loads(out.decode("utf-8"))
+
+    except Exception as e:
+        print("%sThere was a problem decoding the returned JSON output from arp2json.%s" % (color.FAIL,color.END))
+        print(e)
+        exit(1)
+
+    finally:
         print("%sIP - MAC - Vendor - ONVIF Hostname - Configured Using - Time Zone - Local Time - Configured using DHCP?%s" % (color.HEADER,color.END))
         for x in decoded:
             x['onvif'] = GetHostname(x['ip'],user,password)
@@ -197,13 +205,7 @@ def GetONVIFSubnetInfo(inet_dev='eth0',user='admin',password='admin'):
                     x['dhcp'] = y.IPv4.Config.DHCP
 
                 print("%s%s - %s - %s - %s - %s - %s - %s/%s/%s %s:%s:%s - %s%s" %(color.OKGREEN, x['ip'], x['mac'], x['vendor'], x['onvif'], x['clock'], x['timezone'], Month, Day, Year,  Hour, Minute,Second,x['dhcp'],color.END))
-
-    except Exception as e:
-        print("There was a problem scanning the network.")
-        print(e)
-        exit(1)
-
-    finally:
+#                ResetCamera(x['ip'],user,password)
         return decoded
 
 #def SetNtp(ip,user='admin',password='admin'):
@@ -242,10 +244,8 @@ def ScanNetwork():
                 if case('reset'): pass
                 if case('r'): pass
                 if case('R'):
-                    SubnetInfo = GetONVIFSubnetInfo(value['iface'],user, password) # print it out
-                    print SubnetReset(value['iface'], user, password) # reset
-                    SubnetInfo = GetONVIFSubnetInfo(value['iface'],user, password) # print it out again
-                    return
+                    print("%sFeature Not implimented yet%s" % (color.FAIL,color.END))
+                    continue
         print("%sERROR: interface not found.%s\n%sPlease choose a valid interface from the shown options.%s" % (color.FAIL,color.END,color.WARNING,color.END))
 
 # Precompile all the RegEx
