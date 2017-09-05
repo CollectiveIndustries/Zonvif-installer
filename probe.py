@@ -182,7 +182,7 @@ def GetONVIFSubnetInfo(inet_dev='eth0',user='admin',password='admin'):
         exit(1)
 
     finally:
-        print("%sIP - MAC - Vendor - ONVIF Hostname - Configured Using - Time Zone - Local Time - Configured using DHCP?%s" % (color.HEADER,color.END))
+#        print("%sIP - MAC - Vendor - ONVIF Hostname - Configured Using - Time Zone - Local Time - Configured using DHCP?%s" % (color.HEADER,color.END))
         for x in decoded:
             x['onvif'] = GetHostname(x['ip'],user,password)
             if x['onvif'] is not None: # print out only ONVIF devices
@@ -204,7 +204,7 @@ def GetONVIFSubnetInfo(inet_dev='eth0',user='admin',password='admin'):
                 for y in NetConf:
                     x['dhcp'] = y.IPv4.Config.DHCP
 
-                print("%s%s - %s - %s - %s - %s - %s - %s/%s/%s %s:%s:%s - %s%s" %(color.OKGREEN, x['ip'], x['mac'], x['vendor'], x['onvif'], x['clock'], x['timezone'], Month, Day, Year,  Hour, Minute,Second,x['dhcp'],color.END))
+#                print("%s%s - %s - %s - %s - %s - %s - %s/%s/%s %s:%s:%s - %s%s" %(color.OKGREEN, x['ip'], x['mac'], x['vendor'], x['onvif'], x['clock'], x['timezone'], Month, Day, Year,  Hour, Minute,Second,x['dhcp'],color.END))
 #                ResetCamera(x['ip'],user,password)
         return decoded
 
@@ -239,7 +239,18 @@ def ScanNetwork():
                 if case(str(index)): pass # Check all interfaces in the list
                 if case(value['iface']): # aswell as there name
                     print("Scanning network using interface: %s%s) %s%s" % (color.OKBLUE,index,value['iface'],color.END))
+                    print("%sIP - MAC - Vendor - ONVIF Hostname - Configured Using - Time Zone - Configured using DHCP?%s" % (color.HEADER,color.END))
+
                     SubnetInfo = GetONVIFSubnetInfo(value['iface'],user, password)
+                    for x in SubnetInfo:
+                         if x['onvif'] is not None:
+                              print("%s%s - %s - %s - %s - %s - %s - %s%s" %(color.OKGREEN, x['ip'], x['mac'], x['vendor'], x['onvif'], x['clock'], x['timezone'], x['dhcp'],color.END))
+                              # Loop through the list and pull an image from the device.
+                              try:
+                                   function.ViewCamera(user, password, x['ip'])
+                              except ONVIFError as e:
+                                   print("%sIP Address %s failed when trying to obtain ONVIF information with error: %s%s" % (color.FAIL,x['ip'],e,color.END) )
+
                     return
                 if case('reset'): pass
                 if case('r'): pass
@@ -274,10 +285,3 @@ ScanNetwork()
 
 #pprint(SubnetInfo)
 
-# Loop through the list and pull an image from the device.
-#for x in decoded:
-#    if x['onvif'] is not None:
-#        try:
-#            function.ViewCamera('admin','admin',x['ip'])
-#        except ONVIFError as e:
-#            print("%sIP Address %s failed when trying to obtain ONVIF information with error: %s%s" % (color.FAIL,x['ip'],e,color.END) )
