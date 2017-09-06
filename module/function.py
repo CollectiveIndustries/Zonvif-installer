@@ -79,16 +79,14 @@ def MySQL_init():
 			break
 
 
-def ViewCamera(User,Pass,IP):
+def ViewCamera(User, Pass, IP):
 	cap = cv2.VideoCapture('rtsp://%s:%s@%s:554/cam/realmonitor?channel=1&subtype=1&unicast=true&proto=Onvif' % (User,Pass,IP) )
 	ret, frame = cap.read()
 	cv2.imshow('Snapshot', frame)
 	cv2.waitKey(0)
 	cv2.destroyAllWindows()
-#def SiteConfig():
 
 # Get time from NTP Server defualts to 'time.nist.gov' if nothing is provided.
-
 def ntpGet(addr='time.nist.gov'):
     # http://code.activestate.com/recipes/117211-simple-very-sntp-client/
     import socket
