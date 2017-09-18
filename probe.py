@@ -30,13 +30,106 @@ COPYRIGHT_DATE = '2017'
 warnings.filterwarnings('error',category=MySQLdb.Warning)
 _NTP_SERVER_ = 'time.nist.gov'
 
-# Regular Expression Groups #
-class IsValid:
-    # https://regex101.com/r/kKnaHy/1
-    IP = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"
-    MAC = "^([0-9A-F]{2}:){5}([0-9A-Z]){2}$"
 
-# SQL section #
+class SQLFields(object):
+
+	## SQL dictionary for the Zoneminder server ##
+	Monitors = {"Name": "General",
+				"ServerId": 0,
+				"Device": "/dev/video0",
+				"Format": 255,
+				"V4LMultiBuffer": 0,
+				"V4LCapturesPerFrame": 1,
+#				"Host": "http://192.168.20.148/onvif/device_service", #IP address gets replaced using __init__
+				"Port": "80",
+#				"Path": "rtsp://admin:admin@192.168.20.148:554/cam/realmonitor?channel=1&amp;subtype=0&amp;unicast=true&amp;proto=Onvif",
+				"Width": 1920,
+				"Height": 1080, # May need to be set up dynamically using camera specs
+				"Colours": 3,
+				"LabelSize": 1,
+				"ImageBufferCount": 50,
+				"PreEventCount": 25,
+				"PostEventCount": 25,
+				"AlarmFrameCount": 1,
+				"AnalysisFPS": 0.00,
+				"MaxFPS": 0.00,
+				"AlarmMaxFPS": 0.00,
+				"FPSReportInterval": 1000,
+				"SignalCheckColour": "#0000c0",
+				"Sequence": 1}
+
+	Zones = {
+#				"MonitorId": 2, # Monitor ID will need to be pulled from the last commit then added here.
+				"Name": "All",
+				"Units": "Percent",
+				"NumCoords": 4,
+				"Coords": "0,0 1919,0 1919,1079 0,1079",
+				"Area": 2073600,
+				"AlarmRGB": 16711680,
+				"CheckMethod": "Blobs",
+				"MinPixelThreshold": 25,
+				"MinAlarmPixels": 62208,
+				"MaxAlarmPixels": 1555200,
+				"FilterX": 3,
+				"FilterY": 3,
+				"MinFilterPixels": 62208,
+				"MaxFilterPixels": 1555200,
+				"MinBlobPixels": 41472,
+				"MinBlobs": 1,
+				"OverloadFrames": 0,
+				"ExtendAlarmFrames": 0}
+
+
+	## Define the Camera SQL Object here
+	def __init__(self, ip, user='admin', password='admin'): # Define default options for the camera object
+		# https://regex101.com/r/kKnaHy/1
+		ValidIP = re.compile("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$")
+		ValidMac = re.compile("^([0-9A-F]{2}:){5}([0-9A-Z]){2}$")
+
+		# Validate the IP/MAC for the camera so we can verify any potential issues.
+		if(re.match(ValidIP, ip) is not None):
+			self.Monitors['Host'] = "http://"+ip+"/onvif/device_service/" # IP address for the camera
+			self.Monitors['Path'] = "rtsp://"+user+":"+password+"@"+ip+":554/cam/realmonitor?channel=1&amp;subtype=0&amp;unicast=true&amp;proto=Onvif"
+		else:
+			raise RuntimeError("%sIP Address %s%s%s is not valid.%s" % (color.FAIL, color.UNDERLINE, ip, color.FAIL, color.END))
+		self.user = user # Username for the camera
+		self.password = password # Password for the camera
+
+	def InsertMonitor(self):		## Insert statements ##
+		placeholder = ', '.join(['?'] * len(self.Monitors))
+		qry = "INSERT INTO `{table}` ({columns}) VALUES ({values})".format(table='Monitors', columns=", ".join(self.Monitors.keys()), values=", ".join(map(str, self.Monitors.values())) )
+		print qry
+		sql(qry)
+
+#		self.Monitor = "INSERT INTO `Monitors` 45 VALUES "
+#		self.Zone = "INSERT INTO `Zones` 45 VALUES "
+
+
+## run a Commit ##
+def sql(statement, *params):
+    try:
+        num_rows = cursor.execute(db.escape_string(statement), params)
+    except Warning as w:
+        print(color.WARNING+"\nWARNING: "+statement+"\n"+format(w)+color.END)
+    except Exception as e:
+        print("%sERROR:%s\n%s%s" % (color.FAIL, statement, format(e), color.END))
+        exit(1)
+    finally:
+        db.commit()
+
+## Run a Fetch ##
+def fetch(statement):
+    try:
+        num_rows = cursor.execute(statement)
+    except Warning as w:
+        print(color.WARNING+"\nWARNING: "+statement+"\n"+format(w)+color.END)
+    except Exeception as e:
+        print(color.FAIL+"\nERROR: "+statement+"\n"+format(e)+color.END)
+    finally:
+        db.commit()
+        return cursor.fetchone()
+
+# END CLASS
 
 
 # Text output color definitions
@@ -54,7 +147,6 @@ class color:
 class prog:
     arp2json = [CWD+'/bash/arp2json']
     getInf = [CWD+'/bash/lsiface']
-
 
 # This class provides the functionality we want. You only need to look at
 # this if you want to know how this works. It only needs to be defined
@@ -83,27 +175,6 @@ class switch(object):
 
 ## Function Delerations ##
 
-    ## run a Commit ##
-def sql(statement):
-    try:
-        num_rows = cursor.execute(statement)
-    except Warning as w:
-        print(color.WARNING+"\nWARNING: "+statement+"\n"+format(w)+color.END)
-    except Exception as e:
-        print(color.FAIL+"\nERROR: "+statement+"\n"+format(e)+color.END)
-        exit(1)
-    db.commit()
-
-    ## Run a Fetch ##
-def fetch(statement):
-    try:
-        num_rows = cursor.execute(statement)
-    except Warning as w:
-        print(color.WARNING+"\nWARNING: "+statement+"\n"+format(w)+color.END)
-    except Exeception as e:
-        print(color.FAIL+"\nERROR: "+statement+"\n"+format(e)+color.END)
-    db.commit()
-    return cursor.fetchone()
 
 # ONVIF Functions by name (https://www.onvif.org/onvif/ver20/util/operationIndex.html)
 
@@ -137,6 +208,25 @@ def GetSystemDateAndTime(ip,user='admin',password='admin'):
         return None
 
 # Wrapper functions
+def CameraSettings(x,User='admin',Pass='admin'):
+     # fork the subprocess here
+     r, w = os.pipe() # these are file descriptors, not file objects
+
+     pid = os.fork()
+     if pid:
+         # we are the parent
+         os.close(w) # use os.close() to close a file descriptor
+         try:
+             print("%s%s - %s - %s - %s - %s - %s - %s%s" %(color.OKGREEN, x['ip'], x['mac'], x['vendor'], x['onvif'], x['clock'], x['timezone'], x['dhcp'],color.END))
+         except:
+             print("Error forking.")
+
+         os.waitpid(pid, 0) # make sure the child process gets cleaned up
+     else:
+         # we are the child
+         function.ViewCamera(User,Pass,x['ip'])
+         os.close(r)
+         exit(0)
 
 # Resets the camera to factory defaults everything except the Hostname will be reset to there factory shipped values.
 def ResetCamera(ip,user='admin',password='admin'):
@@ -244,10 +334,10 @@ def ScanNetwork():
                     SubnetInfo = GetONVIFSubnetInfo(value['iface'],user, password)
                     for x in SubnetInfo:
                          if x['onvif'] is not None:
-                              print("%s%s - %s - %s - %s - %s - %s - %s%s" %(color.OKGREEN, x['ip'], x['mac'], x['vendor'], x['onvif'], x['clock'], x['timezone'], x['dhcp'],color.END))
                               # Loop through the list and pull an image from the device.
                               try:
-                                   function.ViewCamera(user, password, x['ip'])
+                                   CameraSettings(x,user,password)
+                                   #ViewCamera(user, password, x['ip'])
                               except ONVIFError as e:
                                    print("%sIP Address %s failed when trying to obtain ONVIF information with error: %s%s" % (color.FAIL,x['ip'],e,color.END) )
 
@@ -265,7 +355,7 @@ def ScanNetwork():
 ### Main Script ###
 
 call('clear')
-print("Welcome: " + getpass.getuser())
+print("Welcome: %s%s%s" %(color.OKGREEN,getpass.getuser(),color.END))
 print("Current Working Directory: %s%s%s" % (color.HEADER,CWD,color.END))
 print("Zoneminder Onvif device installer. Copyright (C) %s Andrew Malone Collective Industries\n\n" % (COPYRIGHT_DATE))
 # Grab first time stamp from time.nist.gov so we can avoide anything too dangerous before we configure options
@@ -281,7 +371,12 @@ print("Database version: %s" % data)
 print("Database configuration settings are correct\n\n")
 print("All option defaults will be marked as (%sdefault%s)" % (color.HEADER,color.END))
 
-ScanNetwork()
+#ScanNetwork()
+
+for key, value in SQLFields('192.168.20.212','admin','admin').Monitors.iteritems() :
+    print(key, value)
+
+if SQLFields('192.168.20.212','admin','admin').InsertMonitor():
+    print("SQL Insert Successful")
 
 #pprint(SubnetInfo)
-
