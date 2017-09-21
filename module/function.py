@@ -25,6 +25,40 @@ class color:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+class CheckService:
+    def mysql(self, retry=3): # Set a default retry of 3
+        for i in range(retry-1):
+            output = subprocess.check_output(['ps', '-A'])
+            if 'mysqld' in output:
+                print("MariaDB/MySQL is up and running! [ "+color.OKGREEN+"OK"+color.END+" ]")
+                return True
+            else:
+                print("MariaDB/MySQL is "+color.FAIL+"NOT"+color.END+" running...fixing!")
+                subprocess.call(['service','mysql','start'])
+        return None
+
+    def zoneminder(self, retry=3):
+        for i in range(retry-1):
+            output = subprocess.check_output(['ps', '-A'])
+            if 'zmc' in output:
+                print("Zoneminder surveillance system is up and running! [ "+color.OKGREEN+"OK"+color.END+" ]")
+                return True
+            else:
+                print("Zoneminder surveillance system is "+color.FAIL+"NOT"+color.END+" running...fixing!")
+                subprocess.call(['service','zoneminder','start'])
+        return None
+
+    def apache(self, retry=3):
+        for i in range(retry-1):
+            output = subprocess.check_output(['ps', '-A'])
+            if 'apache2' in output:
+                print("Apache2 is up and running! [ "+color.OKGREEN+"OK"+color.END+" ]")
+                return True
+            else:
+                print("Apache2 is "+color.FAIL+"NOT"+color.END+" running...fixing!")
+                subprocess.call(['service','apache2','start'])
+        return None
+
 ## https://stackoverflow.com/questions/207981/how-to-enable-mysql-client-auto-re-connect-with-mysqldb
 ## MySQL Wrapper Class for dealing with MySQL Servers ##
 
@@ -33,15 +67,12 @@ class MySQL:
 
     ## MySQL init function added an error handler + a config data setting dump should be able to use this for all python database connections
     def connect(self):
-        output = subprocess.check_output(['ps', '-A'])
-        if 'mysqld' in output:
-            print("MariaDB/MySQL is up and running! [ "+color.OKGREEN+"OK"+color.END+" ]")
-        else:
-            print("MariaDB/MySQL is "+color.FAIL+"NOT"+color.END+" running...fixing!")
-            subprocess.call(['service','mysql','start'])
+        services = CheckService()
+        if services.mysql(3) is None:
+            print("MySQL service failed to restart correctly. Check system logs for further details.")
+            exit(1)
 
         while True:
-
         ## Set up the Connection using config.d/NAME.conf returns a standard DB Object
             try:
                 print("Attempting to load configuration file for login information.")
@@ -111,8 +142,8 @@ class MySQL:
 
 ### END CLASS
 
-def ViewCamera(User, Pass, IP):
-    cap = cv2.VideoCapture('rtsp://%s:%s@%s:554/cam/realmonitor?channel=1&subtype=1&unicast=true&proto=Onvif' % (User,Pass,IP) )
+def ViewCamera(User, Pass, ip):
+    cap = cv2.VideoCapture('rtsp://{USER}:{PASSWORD}@{IP}:{PORT}/cam/realmonitor?channel=1&subtype=1&unicast=true&proto=Onvif'.format(USER=User, PASSWORD=Pass, IP=ip, PORT='554') )
     ret, frame = cap.read()
     cv2.imshow('Snapshot', frame)
     cv2.waitKey(0)

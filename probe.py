@@ -30,7 +30,6 @@ COPYRIGHT_DATE = '2017'
 warnings.filterwarnings('error',category=MySQLdb.Warning)
 _NTP_SERVER_ = 'time.nist.gov'
 
-
 class SQLFields(object):
 
     ## SQL dictionary for the Zoneminder server ##
@@ -85,14 +84,14 @@ class SQLFields(object):
         ValidIP = re.compile("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$")
         ValidMac = re.compile("^([0-9A-F]{2}:){5}([0-9A-Z]){2}$")
 
-        path = "rtsp://{IP}:{PORT}/cam/realmonitor?channel=1&subtype=0&unicast=true&proto=Onvif"
+        path = "rtsp://{USER}:{PASSWORD}@{IP}:{PORT}/cam/realmonitor?channel=1&subtype=0&unicast=true&proto=Onvif"
         host = "http://{IP}/onvif/device_service"
 
         # Validate the IP/MAC for the camera so we can verify any potential issues.
         if(re.match(ValidIP, ip) is not None):
             ## rtsp://admin:admin@192.168.20.148:554/cam/realmonitor?channel=1&subtype=0&unicast=true&proto=Onvif ##
             self.Monitors['Host'] = host.format(IP=ip) # IP address for the camera
-            self.Monitors['Path'] = path.format(IP=ip, PORT='554' ) # "rtsp://"+user+":"+password+"@"+ip+":554/cam/realmonitor?channel=1&subtype=0&unicast=true&proto=Onvif"
+            self.Monitors['Path'] = path.format(USER=user, PASSWORD=password, IP=ip, PORT='554' ) # "rtsp://"+user+":"+password+"@"+ip+":554/cam/realmonitor?channel=1&subtype=0&unicast=true&proto=Onvif"
         else:
             raise RuntimeError("%sIP Address %s%s%s is not valid.%s" % (color.FAIL, color.UNDERLINE, ip, color.FAIL, color.END))
         self.user = user # Username for the camera
@@ -106,12 +105,12 @@ class SQLFields(object):
         self.Zones['MonitorId'] = db.fetchOne(select.format(id='Id', table='Monitors', host=self.Monitors['Host'] ))[0]
         placeholderZ = ', '.join(['%s'] * len(self.Zones))
 
-        for k, v in self.Monitors.iteritems() :
-            print(k, v)
-
-        for k, v in self.Zones.iteritems():
-            print(k, v)
-
+#        for k, v in self.Monitors.iteritems() :
+#           print(k, v)
+#
+#        for k, v in self.Zones.iteritems():
+#           print(k, v)
+#
         db.communicate(insert.format(table='Zones', columns=", ".join(self.Zones.keys()), values=placeholderZ ), self.Zones.values())
         return True
 #               self.Monitor = "INSERT INTO `Monitors` 45 VALUES "
@@ -157,10 +156,7 @@ class switch(object):
         else:
             return False
 
-
 ## Function Delerations ##
-
-
 # ONVIF Functions by name (https://www.onvif.org/onvif/ver20/util/operationIndex.html)
 
 def GetHostname(ip,user='admin',password='admin'):
