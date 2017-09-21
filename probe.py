@@ -33,104 +33,89 @@ _NTP_SERVER_ = 'time.nist.gov'
 
 class SQLFields(object):
 
-	## SQL dictionary for the Zoneminder server ##
-	Monitors = {"Name": "General",
-				"ServerId": 0,
-				"Device": "/dev/video0",
-				"Format": 255,
-				"V4LMultiBuffer": 0,
-				"V4LCapturesPerFrame": 1,
-#				"Host": "http://192.168.20.148/onvif/device_service", #IP address gets replaced using __init__
-				"Port": "80",
-#				"Path": "rtsp://admin:admin@192.168.20.148:554/cam/realmonitor?channel=1&amp;subtype=0&amp;unicast=true&amp;proto=Onvif",
-				"Width": 1920,
-				"Height": 1080, # May need to be set up dynamically using camera specs
-				"Colours": 3,
-				"LabelSize": 1,
-				"ImageBufferCount": 50,
-				"PreEventCount": 25,
-				"PostEventCount": 25,
-				"AlarmFrameCount": 1,
-				"AnalysisFPS": 0.00,
-				"MaxFPS": 0.00,
-				"AlarmMaxFPS": 0.00,
-				"FPSReportInterval": 1000,
-				"SignalCheckColour": "#0000c0",
-				"Sequence": 1}
+    ## SQL dictionary for the Zoneminder server ##
+    Monitors = {"Name": "General",
+                            "ServerId": 0,
+                            "Device": "/dev/video0",
+                            "Format": 255,
+                            "V4LMultiBuffer": 0,
+                            "V4LCapturesPerFrame": 1,
+                            "Type": "Ffmpeg",
+                            "Port": "80",
+                            "Width": 1920,
+                            "Height": 1080, # May need to be set up dynamically using camera specs
+                            "Colours": 3,
+                            "LabelSize": 1,
+                            "ImageBufferCount": 50,
+                            "PreEventCount": 25,
+                            "PostEventCount": 25,
+                            "AlarmFrameCount": 1,
+                            "AnalysisFPS": 0.00,
+                            "MaxFPS": 0.00,
+                            "AlarmMaxFPS": 0.00,
+                            "FPSReportInterval": 1000,
+                            "SignalCheckColour": "#0000c0" }
+# Dynamically assigned when added "Sequence": index number for camera in the list.
 
-	Zones = {
-#				"MonitorId": 2, # Monitor ID will need to be pulled from the last commit then added here.
-				"Name": "All",
-				"Units": "Percent",
-				"NumCoords": 4,
-				"Coords": "0,0 1919,0 1919,1079 0,1079",
-				"Area": 2073600,
-				"AlarmRGB": 16711680,
-				"CheckMethod": "Blobs",
-				"MinPixelThreshold": 25,
-				"MinAlarmPixels": 62208,
-				"MaxAlarmPixels": 1555200,
-				"FilterX": 3,
-				"FilterY": 3,
-				"MinFilterPixels": 62208,
-				"MaxFilterPixels": 1555200,
-				"MinBlobPixels": 41472,
-				"MinBlobs": 1,
-				"OverloadFrames": 0,
-				"ExtendAlarmFrames": 0}
-
-
-	## Define the Camera SQL Object here
-	def __init__(self, ip, user='admin', password='admin'): # Define default options for the camera object
-		# https://regex101.com/r/kKnaHy/1
-		ValidIP = re.compile("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$")
-		ValidMac = re.compile("^([0-9A-F]{2}:){5}([0-9A-Z]){2}$")
-
-		# Validate the IP/MAC for the camera so we can verify any potential issues.
-		if(re.match(ValidIP, ip) is not None):
-			self.Monitors['Host'] = "http://"+ip+"/onvif/device_service/" # IP address for the camera
-			self.Monitors['Path'] = "rtsp://"+user+":"+password+"@"+ip+":554/cam/realmonitor?channel=1&amp;subtype=0&amp;unicast=true&amp;proto=Onvif"
-		else:
-			raise RuntimeError("%sIP Address %s%s%s is not valid.%s" % (color.FAIL, color.UNDERLINE, ip, color.FAIL, color.END))
-		self.user = user # Username for the camera
-		self.password = password # Password for the camera
-
-	def InsertMonitor(self):		## Insert statements ##
-		placeholder = ', '.join(['?'] * len(self.Monitors))
-		qry = "INSERT INTO `{table}` ({columns}) VALUES ({values})".format(table='Monitors', columns=", ".join(self.Monitors.keys()), values=", ".join(map(str, self.Monitors.values())) )
-		print qry
-		sql(qry)
-
-#		self.Monitor = "INSERT INTO `Monitors` 45 VALUES "
-#		self.Zone = "INSERT INTO `Zones` 45 VALUES "
+    Zones = {
+#                               "MonitorId": 2, # Monitor ID will need to be pulled from the last commit then added here.
+                            "Name": "All",
+                            "Units": "Percent",
+                            "NumCoords": 4,
+                            "Coords": "0,0 1919,0 1919,1079 0,1079",
+                            "Area": 2073600,
+                            "AlarmRGB": 16711680,
+                            "CheckMethod": "Blobs",
+                            "MinPixelThreshold": 25,
+                            "MinAlarmPixels": 62208,
+                            "MaxAlarmPixels": 1555200,
+                            "FilterX": 3,
+                            "FilterY": 3,
+                            "MinFilterPixels": 62208,
+                            "MaxFilterPixels": 1555200,
+                            "MinBlobPixels": 41472,
+                            "MinBlobs": 1,
+                            "OverloadFrames": 0,
+                            "ExtendAlarmFrames": 0}
 
 
-## run a Commit ##
-def sql(statement, *params):
-    try:
-        num_rows = cursor.execute(db.escape_string(statement), params)
-    except Warning as w:
-        print(color.WARNING+"\nWARNING: "+statement+"\n"+format(w)+color.END)
-    except Exception as e:
-        print("%sERROR:%s\n%s%s" % (color.FAIL, statement, format(e), color.END))
-        exit(1)
-    finally:
-        db.commit()
+    ## Define the Camera SQL Object here
+    def __init__(self, ip, user='admin', password='admin'): # Define default options for the camera object
+        # https://regex101.com/r/kKnaHy/1
+        ValidIP = re.compile("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$")
+        ValidMac = re.compile("^([0-9A-F]{2}:){5}([0-9A-Z]){2}$")
 
-## Run a Fetch ##
-def fetch(statement):
-    try:
-        num_rows = cursor.execute(statement)
-    except Warning as w:
-        print(color.WARNING+"\nWARNING: "+statement+"\n"+format(w)+color.END)
-    except Exeception as e:
-        print(color.FAIL+"\nERROR: "+statement+"\n"+format(e)+color.END)
-    finally:
-        db.commit()
-        return cursor.fetchone()
+        path = "rtsp://{IP}:{PORT}/cam/realmonitor?channel=1&subtype=0&unicast=true&proto=Onvif"
+        host = "http://{IP}/onvif/device_service"
 
-# END CLASS
+        # Validate the IP/MAC for the camera so we can verify any potential issues.
+        if(re.match(ValidIP, ip) is not None):
+            ## rtsp://admin:admin@192.168.20.148:554/cam/realmonitor?channel=1&subtype=0&unicast=true&proto=Onvif ##
+            self.Monitors['Host'] = host.format(IP=ip) # IP address for the camera
+            self.Monitors['Path'] = path.format(IP=ip, PORT='554' ) # "rtsp://"+user+":"+password+"@"+ip+":554/cam/realmonitor?channel=1&subtype=0&unicast=true&proto=Onvif"
+        else:
+            raise RuntimeError("%sIP Address %s%s%s is not valid.%s" % (color.FAIL, color.UNDERLINE, ip, color.FAIL, color.END))
+        self.user = user # Username for the camera
+        self.password = password # Password for the camera
 
+    def InstallCamera(self):                ## Insert statements ##
+        placeholderM = ', '.join(['%s'] * len(self.Monitors))
+        insert = "INSERT INTO `{table}` ({columns}) VALUES ({values})"
+        select = "SELECT `{id}` FROM `{table}` WHERE host='{host}'"
+        db.communicate(insert.format(table='Monitors', columns=", ".join(self.Monitors.keys()), values=placeholderM ), self.Monitors.values())
+        self.Zones['MonitorId'] = db.fetchOne(select.format(id='Id', table='Monitors', host=self.Monitors['Host'] ))[0]
+        placeholderZ = ', '.join(['%s'] * len(self.Zones))
+
+        for k, v in self.Monitors.iteritems() :
+            print(k, v)
+
+        for k, v in self.Zones.iteritems():
+            print(k, v)
+
+        db.communicate(insert.format(table='Zones', columns=", ".join(self.Zones.keys()), values=placeholderZ ), self.Zones.values())
+        return True
+#               self.Monitor = "INSERT INTO `Monitors` 45 VALUES "
+#               self.Zone = "INSERT INTO `Zones` 45 VALUES "
 
 # Text output color definitions
 class color:
@@ -209,24 +194,24 @@ def GetSystemDateAndTime(ip,user='admin',password='admin'):
 
 # Wrapper functions
 def CameraSettings(x,User='admin',Pass='admin'):
-     # fork the subprocess here
-     r, w = os.pipe() # these are file descriptors, not file objects
+    # fork the subprocess here
+    r, w = os.pipe() # these are file descriptors, not file objects
 
-     pid = os.fork()
-     if pid:
-         # we are the parent
-         os.close(w) # use os.close() to close a file descriptor
-         try:
-             print("%s%s - %s - %s - %s - %s - %s - %s%s" %(color.OKGREEN, x['ip'], x['mac'], x['vendor'], x['onvif'], x['clock'], x['timezone'], x['dhcp'],color.END))
-         except:
-             print("Error forking.")
+    pid = os.fork()
+    if pid:
+        # we are the parent
+        os.close(w) # use os.close() to close a file descriptor
+        try:
+            print("%s%s - %s - %s - %s - %s - %s - %s%s" %(color.OKGREEN, x['ip'], x['mac'], x['vendor'], x['onvif'], x['clock'], x['timezone'], x['dhcp'],color.END))
+        except:
+            print("Error forking.")
 
-         os.waitpid(pid, 0) # make sure the child process gets cleaned up
-     else:
-         # we are the child
-         function.ViewCamera(User,Pass,x['ip'])
-         os.close(r)
-         exit(0)
+        os.waitpid(pid, 0) # make sure the child process gets cleaned up
+    else:
+        # we are the child
+        function.ViewCamera(User,Pass,x['ip'])
+        os.close(r)
+        exit(0)
 
 # Resets the camera to factory defaults everything except the Hostname will be reset to there factory shipped values.
 def ResetCamera(ip,user='admin',password='admin'):
@@ -276,7 +261,7 @@ def GetONVIFSubnetInfo(inet_dev='eth0',user='admin',password='admin'):
         for x in decoded:
             x['onvif'] = GetHostname(x['ip'],user,password)
             if x['onvif'] is not None: # print out only ONVIF devices
-                # clock: NTP, dhcp: False, timezone: GMT-07:00, NewIP: 0.0.0.0
+        # clock: NTP, dhcp: False, timezone: GMT-07:00, NewIP: 0.0.0.0
                 NetConf = GetNetworkInterfaces(x['ip'],user,password)
                 DateTime = GetSystemDateAndTime(x['ip'],user,password)
                 x['timezone'] = DateTime.TimeZone.TZ
@@ -333,13 +318,13 @@ def ScanNetwork():
 
                     SubnetInfo = GetONVIFSubnetInfo(value['iface'],user, password)
                     for x in SubnetInfo:
-                         if x['onvif'] is not None:
-                              # Loop through the list and pull an image from the device.
-                              try:
-                                   CameraSettings(x,user,password)
-                                   #ViewCamera(user, password, x['ip'])
-                              except ONVIFError as e:
-                                   print("%sIP Address %s failed when trying to obtain ONVIF information with error: %s%s" % (color.FAIL,x['ip'],e,color.END) )
+                        if x['onvif'] is not None:
+                            # Loop through the list and pull an image from the device.
+                            try:
+                                CameraSettings(x,user,password)
+                                SQLFields(x['ip'],user,password).InstallCamera()
+                            except ONVIFError as e:
+                                print("%sIP Address %s failed when trying to obtain ONVIF information with error: %s%s" % (color.FAIL,x['ip'],e,color.END) )
 
                     return
                 if case('reset'): pass
@@ -359,24 +344,19 @@ print("Welcome: %s%s%s" %(color.OKGREEN,getpass.getuser(),color.END))
 print("Current Working Directory: %s%s%s" % (color.HEADER,CWD,color.END))
 print("Zoneminder Onvif device installer. Copyright (C) %s Andrew Malone Collective Industries\n\n" % (COPYRIGHT_DATE))
 # Grab first time stamp from time.nist.gov so we can avoide anything too dangerous before we configure options
-print("Local Server Time (from %s): %s%s%s" % (_NTP_SERVER_, color.OKBLUE,function.ntpGet(_NTP_SERVER_)[0], color.END))
+print("Local Server Time (from %s): %s%s%s" % (_NTP_SERVER_, color.OKBLUE, function.ntpGet(_NTP_SERVER_)[0], color.END))
 
 #print(os.getcwd())
-db = function.MySQL_init()
-
-cursor = db.cursor()
-
-data = fetch("SELECT VERSION()")
+db = function.MySQL()
+db.connect()
+data = db.fetchOne("SELECT VERSION()")
 print("Database version: %s" % data)
 print("Database configuration settings are correct\n\n")
 print("All option defaults will be marked as (%sdefault%s)" % (color.HEADER,color.END))
 
-#ScanNetwork()
+ScanNetwork()
 
-for key, value in SQLFields('192.168.20.212','admin','admin').Monitors.iteritems() :
-    print(key, value)
 
-if SQLFields('192.168.20.212','admin','admin').InsertMonitor():
-    print("SQL Insert Successful")
+#print(SQLFields('192.168.20.212','admin','admin').InstallCamera())
 
 #pprint(SubnetInfo)

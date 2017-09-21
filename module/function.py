@@ -2,10 +2,10 @@
 
 ## Hopefully we can avoid disaster if we dont import this in a main program
 try:
-  config
+    config
 except NameError:
-  import config
-  from config import SQLConfig
+    import config
+    from config import SQLConfig
 
 import MySQLdb
 import subprocess
@@ -25,70 +25,102 @@ class color:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-## MySQL init function added an error handler + a config data setting dump should be able to use this for all python database connections
-def MySQL_init():
-	output = subprocess.check_output(['ps', '-A'])
-	if 'mysqld' in output:
-    		print("MariaDB/MySQL is up and running! [ "+color.OKGREEN+"OK"+color.END+" ]")
-	else:
-		print("MariaDB/MySQL is "+color.FAIL+"NOT"+color.END+" running...fixing!")
-		subprocess.call(['service','mysql','start'])
+## https://stackoverflow.com/questions/207981/how-to-enable-mysql-client-auto-re-connect-with-mysqldb
+## MySQL Wrapper Class for dealing with MySQL Servers ##
 
-	while True:
+class MySQL:
+    conn = None
 
-    ## Set up the Connection using config.d/NAME.conf returns a standard DB Object
-		try:
-			db = MySQLdb.connect(host=SQLConfig.host,user=SQLConfig.user,passwd=SQLConfig.password,db=SQLConfig.db)
-			# Values must be correct, if values were wrong a MySQLdb.Error would have been thrown
-			# lets write out the new configuration values.
-#			config.ConfigAddSection("DB")
-			config.ConfigSetValue("DB","host",SQLConfig.host)
-			config.ConfigSetValue("DB","user",SQLConfig.user)
-			config.ConfigSetValue("DB","password",SQLConfig.password)
-			config.ConfigSetValue("DB","database",SQLConfig.db)
-#			config.ConfigSetValue("DB","port",config._IN_MYSQL_PORT_) # this setting looks to be unused at the moment however at some time in the future it should be configurable.
-			config.ConfigWrite() # Write file with proper values now that weve updated everything.
+    ## MySQL init function added an error handler + a config data setting dump should be able to use this for all python database connections
+    def connect(self):
+        output = subprocess.check_output(['ps', '-A'])
+        if 'mysqld' in output:
+            print("MariaDB/MySQL is up and running! [ "+color.OKGREEN+"OK"+color.END+" ]")
+        else:
+            print("MariaDB/MySQL is "+color.FAIL+"NOT"+color.END+" running...fixing!")
+            subprocess.call(['service','mysql','start'])
 
-			return db # Return the DB connection Object
+        while True:
 
-		except MySQLdb.Error:
-			print "There was a problem in connecting to the database."
-			print "Config DUMP:"
-			print "HOST: %s\nUSER: %s\nPASS: %s\nDATABASE: %s" %(SQLConfig.host,SQLConfig.user,SQLConfig.password,SQLConfig.db)
-			print "Please Enter the correct login credentials below.\nRequired items are marked in "+color.FAIL+"RED"+color.END+" Any default values will be marked with []\n Once correct values are configured the installer will update the configuration file: "+config.ConfigFile
+        ## Set up the Connection using config.d/NAME.conf returns a standard DB Object
+            try:
+                print("Attempting to load configuration file for login information.")
+                self.conn = MySQLdb.connect(host=SQLConfig.host,user=SQLConfig.user,passwd=SQLConfig.password,db=SQLConfig.db)
 
-			## > fix values here < ##
+            except MySQLdb.Error:
+                print "There was a problem in connecting to the database."
+                print "Config DUMP:"
+                print "HOST: %s\nUSER: %s\nPASS: %s\nDATABASE: %s" %(SQLConfig.host,SQLConfig.user,SQLConfig.password,SQLConfig.db)
+                print "Please Enter the correct login credentials below.\nRequired items are marked in "+color.FAIL+"RED"+color.END+" Any default values will be marked with []\n Once correct values are configured the installer will update the configuration file: "+config.ConfigFile
 
-			SQLConfig.host = None
-			SQLConfig.user = None
-			SQLConfig.password = None
-			SQLConfig.db = None
+                ## > fix values here < ##
 
-			# After restting variables to None we need to prompt the user for each one and try again.
+                SQLConfig.host = None
+                SQLConfig.user = None
+                SQLConfig.password = None
+                SQLConfig.db = None
 
-			while ((SQLConfig.host is None) or (SQLConfig.host=='')):
-				SQLConfig.host = raw_input(color.FAIL+"Mysql Server Host (example.com) []: "+color.END)
-			while ((SQLConfig.db is None) or (SQLConfig.db == '')):
-				SQLConfig.db = raw_input(color.FAIL+"Name of Database []: "+color.END)
-			while ((SQLConfig.user is None) or (SQLConfig.user == '')):
-				SQLConfig.user = raw_input(color.FAIL+"Username []: "+color.END)
-			while ((SQLConfig.password is None) or (SQLConfig.password == '')):
-				SQLConfig.password = getpass(color.FAIL+"Password []: "+color.END)
-			pass
-		except MySQLdb.Warning: # Silently ignore Warnings
-			break
+                # After restting variables to None we need to prompt the user for each one and try again.
 
+                while ((SQLConfig.host is None) or (SQLConfig.host=='')):
+                    SQLConfig.host = raw_input(color.FAIL+"Mysql Server Host (example.com) []: "+color.END)
+                while ((SQLConfig.db is None) or (SQLConfig.db == '')):
+                    SQLConfig.db = raw_input(color.FAIL+"Name of Database []: "+color.END)
+                while ((SQLConfig.user is None) or (SQLConfig.user == '')):
+                    SQLConfig.user = raw_input(color.FAIL+"Username []: "+color.END)
+                while ((SQLConfig.password is None) or (SQLConfig.password == '')):
+                    SQLConfig.password = getpass(color.FAIL+"Password []: "+color.END)
+                pass
+
+            except MySQLdb.Warning: # Silently ignore Warnings
+                pass
+
+            finally:
+                # Values must be correct, if values were wrong a MySQLdb.Error would have been thrown
+                # lets write out the new configuration values.
+#                       config.ConfigAddSection("DB")
+                config.ConfigSetValue("DB","host",SQLConfig.host)
+                config.ConfigSetValue("DB","user",SQLConfig.user)
+                config.ConfigSetValue("DB","password",SQLConfig.password)
+                config.ConfigSetValue("DB","database",SQLConfig.db)
+#                       config.ConfigSetValue("DB","port",config._IN_MYSQL_PORT_) # this setting looks to be unused at the moment however at some time in the future it should be configurable.
+                config.ConfigWrite() # Write file with proper values now that weve updated everything.
+                break
+
+## push information to the server
+    def communicate(self, sql, params=[]):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute(sql, params)
+        except (AttributeError, MySQLdb.OperationalError):
+            self.connect()
+            cursor = self.conn.cursor()
+            cursor.execute(sql, params)
+        except Warning as w:
+            print(color.WARNING+"\nWARNING: "+statement+"\n"+format(w)+color.END)
+        except Exeception as e:
+            print(color.FAIL+"\nERROR: "+statement+"\n"+format(e)+color.END)
+        finally:
+            self.conn.commit()
+            return cursor
+
+## Grab oneline from the server
+    def fetchOne(self, sql, params=[]):
+            cursor = self.communicate(sql, params)
+            return cursor.fetchone()
+
+### END CLASS
 
 def ViewCamera(User, Pass, IP):
-	cap = cv2.VideoCapture('rtsp://%s:%s@%s:554/cam/realmonitor?channel=1&subtype=1&unicast=true&proto=Onvif' % (User,Pass,IP) )
-	ret, frame = cap.read()
-	cv2.imshow('Snapshot', frame)
-	cv2.waitKey(0)
-	cv2.destroyAllWindows()
+    cap = cv2.VideoCapture('rtsp://%s:%s@%s:554/cam/realmonitor?channel=1&subtype=1&unicast=true&proto=Onvif' % (User,Pass,IP) )
+    ret, frame = cap.read()
+    cv2.imshow('Snapshot', frame)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 # Get time from NTP Server defualts to 'time.nist.gov' if nothing is provided.
 def ntpGet(addr='time.nist.gov'):
-    # http://code.activestate.com/recipes/117211-simple-very-sntp-client/
+        # http://code.activestate.com/recipes/117211-simple-very-sntp-client/
     import socket
     import struct
     import sys
@@ -102,11 +134,11 @@ def ntpGet(addr='time.nist.gov'):
         client.settimeout(20)
         data, address = client.recvfrom( 1024 )
     except socket.error:
-         errno,errstr = sys.exc_info()[:2]
-         if errno == socket.timeout:
-             print('%sFailed to get Time from %s reason: Socket timed out%s' % (color.FAIL,addr,color.END))
-         else:
-             print('%sFailed to get Time from %s error: %s%s' % (color.FAIL,addr, errstr,color.END))
+        errno,errstr = sys.exc_info()[:2]
+        if errno == socket.timeout:
+            print('%sFailed to get Time from %s reason: Socket timed out%s' % (color.FAIL,addr,color.END))
+        else:
+            print('%sFailed to get Time from %s error: %s%s' % (color.FAIL,addr, errstr,color.END))
 
     if data:
         t = struct.unpack( '!12I', data )[10]
